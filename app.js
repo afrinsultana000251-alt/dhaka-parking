@@ -4,6 +4,40 @@ const STORE_KEY = "dhaka-parking-v3";
 const BAY_COUNT = 12;
 const SIMULATION_MS = 6000;
 
+// Space added around a car: length for parking, width for opening doors.
+const LENGTH_CLEARANCE_MM = 300;
+const WIDTH_CLEARANCE_MM = 400;
+
+const CARS = [
+  { id: "alto", name: "Suzuki Alto", length: 3395, width: 1475 },
+  { id: "aqua", name: "Toyota Aqua", length: 3995, width: 1695 },
+  { id: "probox", name: "Toyota Probox", length: 4245, width: 1690 },
+  { id: "vezel", name: "Honda Vezel", length: 4330, width: 1790 },
+  { id: "axio", name: "Toyota Corolla Axio", length: 4400, width: 1695 },
+  { id: "fielder", name: "Toyota Corolla Fielder", length: 4400, width: 1695 },
+  { id: "allion", name: "Toyota Allion", length: 4565, width: 1695 },
+  { id: "premio", name: "Toyota Premio", length: 4595, width: 1695 },
+  { id: "altis", name: "Toyota Corolla Altis", length: 4620, width: 1775 },
+  { id: "xtrail", name: "Nissan X-Trail", length: 4690, width: 1820 },
+  { id: "noah", name: "Toyota Noah", length: 4710, width: 1730 },
+  { id: "hiace-gl", name: "Toyota Hiace GL", length: 4840, width: 1880 },
+  { id: "pajero", name: "Mitsubishi Pajero", length: 4900, width: 1875 },
+  { id: "prado", name: "Toyota Land Cruiser Prado", length: 4925, width: 1980 },
+  { id: "hiace-long", name: "Toyota Hiace Commuter", length: 5915, width: 1950 }
+];
+
+const BAY_TYPES = {
+  compact: { width: 2000, length: 3800 },
+  standard: { width: 2300, length: 5000 },
+  large: { width: 2600, length: 5500 },
+  extra: { width: 2800, length: 6300 }
+};
+
+const BAY_LAYOUT = [
+  "standard", "compact", "standard", "large", "standard", "large",
+  "compact", "standard", "large", "standard", "extra", "standard"
+];
+
 const AREAS = [
   { id: "gulshan", en: "Gulshan", bn: "গুলশান", roads: [
     { id: "gulshan-ave", en: "Gulshan Avenue", bn: "গুলশান অ্যাভিনিউ", rate: 60, pattern: "TFTTFTTFTTTF", lat: 23.7925, lng: 90.4078 },
@@ -50,7 +84,13 @@ const TEXT = {
     reset: "Clear demo data", resetConfirm: "Tap again to clear all demo data", about: "About this prototype",
     aboutText: "Your location is real when you allow it. Parking availability, rates and bookings are sample data. A real system would get live bay status from road sensors or cameras.",
     mapTitle: "Parking map", mapOffline: "The map needs an internet connection. You can still use the Find tab.",
-    keyHigh: "4 or more free", keyLow: "1 to 3 free", keyNone: "Full", approx: "Road positions are approximate."
+    keyHigh: "4 or more free", keyLow: "1 to 3 free", keyNone: "Full", approx: "Road positions are approximate.",
+    yourCar: "Your car", chooseCar: "Choose your car", changeCar: "Change car", carSearch: "Search car name",
+    noCars: "No car matches your search.", customCar: "Custom car", customSize: "Enter a custom size",
+    lengthM: "Length (metres)", widthM: "Width (metres)", useSize: "Use this size", removeCar: "Remove selected car",
+    customError: "Enter a length from 2 to 8 m and a width from 1 to 3 m.", fits: "Fits", tooSmall: "Too small",
+    fitCount: "fit your car", needs: "Needs a bay of at least", clearanceNote: "The fit check adds 0.3 m to length and 0.4 m to width for parking and door space. Bay sizes are sample data.",
+    selectCarHint: "Choose your car to check which bays fit.", car: "Car", notSelected: "Not selected", fitResult: "Fit check"
   },
   bn: {
     brand: "ঢাকা পার্কিং", prototype: "প্রোটোটাইপ: নমুনা ডেটা", sample: "নমুনা",
@@ -78,7 +118,13 @@ const TEXT = {
     reset: "ডেমো ডেটা মুছুন", resetConfirm: "সব ডেমো ডেটা মুছতে আবার চাপুন", about: "এই প্রোটোটাইপ সম্পর্কে",
     aboutText: "আপনি অনুমতি দিলে লোকেশন আসল হয়। পার্কিংয়ের তথ্য, ভাড়া ও বুকিং নমুনা ডেটা। আসল সিস্টেমে রাস্তার সেন্সর বা ক্যামেরা থেকে বে-র লাইভ তথ্য আসবে।",
     mapTitle: "পার্কিং ম্যাপ", mapOffline: "ম্যাপের জন্য ইন্টারনেট লাগবে। তবে খুঁজুন ট্যাব ব্যবহার করতে পারবেন।",
-    keyHigh: "৪টি বা বেশি ফাঁকা", keyLow: "১ থেকে ৩টি ফাঁকা", keyNone: "ভরা", approx: "রাস্তার অবস্থান আনুমানিক।"
+    keyHigh: "৪টি বা বেশি ফাঁকা", keyLow: "১ থেকে ৩টি ফাঁকা", keyNone: "ভরা", approx: "রাস্তার অবস্থান আনুমানিক।",
+    yourCar: "আপনার গাড়ি", chooseCar: "গাড়ি বাছুন", changeCar: "গাড়ি বদলান", carSearch: "গাড়ির নাম খুঁজুন",
+    noCars: "এই নামে কোনো গাড়ি পাওয়া যায়নি।", customCar: "নিজের মাপের গাড়ি", customSize: "নিজের গাড়ির মাপ দিন",
+    lengthM: "দৈর্ঘ্য (মিটার)", widthM: "প্রস্থ (মিটার)", useSize: "এই মাপ ব্যবহার করুন", removeCar: "বাছাই করা গাড়ি সরান",
+    customError: "দৈর্ঘ্য ২ থেকে ৮ মিটার এবং প্রস্থ ১ থেকে ৩ মিটারের মধ্যে দিন।", fits: "ধরবে", tooSmall: "ছোট",
+    fitCount: "টিতে আপনার গাড়ি ধরবে", needs: "দরকার অন্তত এই মাপের বে:", clearanceNote: "হিসাবে পার্কিং ও দরজা খোলার জন্য দৈর্ঘ্যে ০.৩ মিটার ও প্রস্থে ০.৪ মিটার যোগ করা হয়। বে-র মাপ নমুনা ডেটা।",
+    selectCarHint: "কোন বে-তে ধরবে দেখতে আপনার গাড়ি বাছুন।", car: "গাড়ি", notSelected: "বাছাই করা হয়নি", fitResult: "মাপ যাচাই"
   }
 };
 
@@ -92,6 +138,7 @@ const ICONS = {
 const defaultStore = () => ({
   lang: "en",
   profile: { name: "", vehicle: "" },
+  car: null,
   bookings: [],
   saved: []
 });
@@ -133,7 +180,12 @@ const state = {
   locationError: "",
   checkout: null,
   ticketId: null,
-  resetArmed: false
+  resetArmed: false,
+  carQuery: "",
+  carReturn: "tab",
+  customLength: "",
+  customWidth: "",
+  customError: ""
 };
 
 const app = document.getElementById("app");
@@ -193,6 +245,88 @@ function freeCount(road) {
   return free;
 }
 
+const metres = (mm) => number((Math.round(mm / 10) / 100).toFixed(2));
+const metresShort = (mm) => number((mm / 1000).toFixed(1));
+const carName = (car) => car.custom ? t("customCar") : car.name;
+const carSize = (car) => `${metres(car.length)} × ${metres(car.width)} m`;
+const carNeedsLength = (car) => car.length + LENGTH_CLEARANCE_MM;
+const carNeedsWidth = (car) => car.width + WIDTH_CLEARANCE_MM;
+
+function bayType(road, index) {
+  const offset = allRoads().findIndex((entry) => entry.road.id === road.id) * 3;
+  return BAY_TYPES[BAY_LAYOUT[(index + offset) % BAY_COUNT]];
+}
+
+function carFits(car, bay) {
+  return carNeedsLength(car) <= bay.length && carNeedsWidth(car) <= bay.width;
+}
+
+function fitCount(road) {
+  let fitting = 0;
+  for (let index = 0; index < BAY_COUNT; index += 1) {
+    if (!isTaken(road, index) && carFits(store.car, bayType(road, index))) fitting += 1;
+  }
+  return fitting;
+}
+
+function renderCarButton() {
+  const car = store.car;
+  return `
+    <button class="car-button" data-action="openCar">
+      <span class="road-text">
+        <span class="road-meta">${t("yourCar")}</span>
+        <span class="road-name">${car ? esc(carName(car)) : t("chooseCar")}</span>
+        ${car ? `<span class="road-meta">${carSize(car)}</span>` : ""}
+      </span>
+      <span class="car-action">${car ? t("changeCar") : t("chooseCar")}</span>
+    </button>
+  `;
+}
+
+function renderCarList() {
+  const query = state.carQuery.trim().toLowerCase();
+  const cars = CARS.filter((car) => car.name.toLowerCase().includes(query));
+  if (!cars.length) return `<p class="note">${t("noCars")}</p>`;
+  return cars.map((car) => {
+    const selected = store.car && store.car.id === car.id;
+    return `
+      <button class="car-option" data-action="pickCar" data-id="${car.id}" aria-pressed="${Boolean(selected)}">
+        <span class="road-name">${car.name}</span>
+        <span class="road-meta">${carSize(car)}</span>
+      </button>
+    `;
+  }).join("");
+}
+
+function renderCar() {
+  return `
+    <div class="subheader">
+      ${backButton("backFromCar")}
+      <div class="subheader-title"><h2>${t("chooseCar")}</h2></div>
+    </div>
+    <input class="search" id="car-search" type="search" value="${esc(state.carQuery)}"
+      placeholder="${t("carSearch")}" aria-label="${t("carSearch")}">
+    <section class="section" id="car-list">${renderCarList()}</section>
+    <section class="summary">
+      <h3>${t("customSize")}</h3>
+      <div class="custom-grid">
+        <div class="field-group">
+          <label for="custom-length">${t("lengthM")}</label>
+          <input class="field" id="custom-length" type="number" inputmode="decimal" min="2" max="8" step="0.01" value="${esc(state.customLength)}">
+        </div>
+        <div class="field-group">
+          <label for="custom-width">${t("widthM")}</label>
+          <input class="field" id="custom-width" type="number" inputmode="decimal" min="1" max="3" step="0.01" value="${esc(state.customWidth)}">
+        </div>
+      </div>
+      ${state.customError ? `<p class="error" role="alert">${state.customError}</p>` : ""}
+      <button class="secondary" data-action="useCustom">${t("useSize")}</button>
+    </section>
+    ${store.car ? `<button class="secondary danger" data-action="clearCar">${t("removeCar")}</button>` : ""}
+    <p class="note">${t("clearanceNote")}</p>
+  `;
+}
+
 function distanceKm(from, to) {
   const radians = (degrees) => degrees * Math.PI / 180;
   const latDelta = radians(to.lat - from.lat);
@@ -239,6 +373,7 @@ function renderRoadCards() {
             <span class="road-name">${named(road)}</span>
             <span class="road-meta">${named(area)}${distance}</span>
             <span class="road-meta">${money(road.rate)}${t("perHour")} (${t("sample")})</span>
+            ${store.car ? `<span class="road-meta fit-meta">${number(fitCount(road))} ${t("fitCount")}</span>` : ""}
           </span>
           <span class="road-free"><b>${number(freeCount(road))}</b><span>${t("freeOf")}</span></span>
         </button>
@@ -274,6 +409,7 @@ function renderFind() {
     <h1>${t("heading")}</h1>
     <input class="search" id="search" type="search" value="${esc(state.query)}"
       placeholder="${t("search")}" aria-label="${t("search")}">
+    ${renderCarButton()}
     <section class="section">
       <button class="secondary" data-action="locate" ${loading ? "disabled" : ""}>${locationLabel}</button>
       ${state.locationError ? `<p class="error" role="alert">${state.locationError}</p>` : ""}
@@ -367,11 +503,18 @@ function backButton(action) {
 function renderBay(road, index) {
   const taken = isTaken(road, index);
   const selected = state.selected === index;
-  const status = taken ? t("taken") : selected ? t("selected") : t("freeBay");
+  const type = bayType(road, index);
+  const size = `${metresShort(type.width)} × ${metresShort(type.length)} m`;
+  const tooSmall = !taken && store.car && !carFits(store.car, type);
+  let status = t("freeBay");
+  if (taken) status = t("taken");
+  else if (tooSmall) status = t("tooSmall");
+  else if (selected) status = t("selected");
+  else if (store.car) status = t("fits");
   return `
-    <button class="bay ${selected ? "selected" : ""}" data-action="pickBay" data-index="${index}"
-      aria-label="${t("bay")} ${bayName(index)}, ${status}" ${taken ? "disabled" : ""}>
-      <b>${bayName(index)}</b><span>${status}</span>
+    <button class="bay ${selected ? "selected" : ""} ${tooSmall ? "too-small" : ""}" data-action="pickBay" data-index="${index}"
+      aria-label="${t("bay")} ${bayName(index)}, ${size}, ${status}" ${taken || tooSmall ? "disabled" : ""}>
+      <b>${bayName(index)}</b><span>${status}</span><small>${size}</small>
     </button>
   `;
 }
@@ -395,6 +538,12 @@ function renderRoad() {
       </div>
       <span class="badge">${t("sample")}</span>
     </div>
+    ${store.car ? `
+      <button class="fit-banner" data-action="openCar">
+        <b>${esc(carName(store.car))}: ${number(fitCount(road))} ${t("fitCount")}</b>
+        <span>${t("needs")} ${metres(carNeedsWidth(store.car))} × ${metres(carNeedsLength(store.car))} m</span>
+      </button>
+    ` : `<button class="fit-banner" data-action="openCar"><b>${t("chooseCar")}</b><span>${t("selectCarHint")}</span></button>`}
     <div class="bays">${rows}</div>
     <div class="actions">
       <button class="secondary" data-action="toggleSimulation" aria-pressed="${state.simulation}">${state.simulation ? t("simOn") : t("simOff")}</button>
@@ -421,6 +570,8 @@ function renderCheckout() {
     <section class="summary">
       <div class="summary-row"><span>${t("road")}</span><span>${named(road)}, ${named(area)}</span></div>
       <div class="summary-row"><span>${t("bay")}</span><span>${bayName(checkout.bayIndex)}</span></div>
+      <div class="summary-row"><span>${t("car")}</span><span>${store.car ? `${esc(carName(store.car))} (${carSize(store.car)})` : t("notSelected")}</span></div>
+      ${store.car ? `<div class="summary-row"><span>${t("fitResult")}</span><span>${t("fits")}</span></div>` : ""}
       <div class="summary-row"><span>${t("rate")}</span><span>${money(road.rate)}${t("perHour")}</span></div>
       <div class="summary-row total"><span>${t("total")}</span><span id="total">${money(road.rate * checkout.hours)}</span></div>
     </section>
@@ -469,6 +620,7 @@ function renderTicket() {
       <div class="summary-row"><span>${t("road")}</span><span>${named(road)}, ${named(area)}</span></div>
       <div class="summary-row"><span>${t("bay")}</span><span>${bayName(booking.bayIndex)}</span></div>
       <div class="summary-row"><span>${t("vehicle")}</span><span>${esc(booking.vehicle)}</span></div>
+      ${booking.carLabel ? `<div class="summary-row"><span>${t("car")}</span><span>${esc(booking.carLabel)}</span></div>` : ""}
       <div class="summary-row total"><span>${t("total")}</span><span>${money(booking.cost)}</span></div>
     </section>
     <div class="section">
@@ -536,6 +688,7 @@ function renderProfile() {
       <input class="field" id="profile-vehicle" data-profile="vehicle" autocomplete="off"
         value="${esc(store.profile.vehicle)}" placeholder="${t("vehiclePlaceholder")}">
     </div>
+    ${renderCarButton()}
     <section class="section">
       <div class="label">${t("language")}</div>
       <button class="secondary" data-action="toggleLanguage">${t("switchLanguage")}</button>
@@ -566,7 +719,7 @@ function render() {
   document.documentElement.lang = store.lang;
   document.title = t("brand");
   const tabViews = { find: renderFind, map: renderMapTab, bookings: renderBookings, profile: renderProfile };
-  const views = { road: renderRoad, checkout: renderCheckout, ticket: renderTicket };
+  const views = { road: renderRoad, checkout: renderCheckout, ticket: renderTicket, car: renderCar };
   const showMap = state.view === "tab" && state.tab === "map";
   if (leafletMap && !showMap) {
     leafletMap.remove();
@@ -637,6 +790,39 @@ const actions = {
   savedOnly() {
     state.savedOnly = !state.savedOnly;
   },
+  openCar() {
+    state.carReturn = state.view;
+    state.carQuery = "";
+    state.customError = "";
+    state.selected = null;
+    state.view = "car";
+    window.scrollTo(0, 0);
+  },
+  backFromCar() {
+    state.view = state.carReturn;
+  },
+  pickCar(button) {
+    store.car = { ...CARS.find((car) => car.id === button.dataset.id) };
+    saveStore();
+    state.view = state.carReturn;
+  },
+  useCustom() {
+    const length = Number(state.customLength);
+    const width = Number(state.customWidth);
+    if (!(length >= 2 && length <= 8 && width >= 1 && width <= 3)) {
+      state.customError = t("customError");
+      return;
+    }
+    store.car = { id: "custom", custom: true, length: Math.round(length * 1000), width: Math.round(width * 1000) };
+    saveStore();
+    state.customError = "";
+    state.view = state.carReturn;
+  },
+  clearCar() {
+    store.car = null;
+    saveStore();
+    state.view = state.carReturn;
+  },
   toggleSaved(button) {
     const id = button.dataset.id;
     store.saved = store.saved.includes(id)
@@ -699,6 +885,7 @@ const actions = {
       cost: road.rate * checkout.hours,
       method: checkout.method,
       vehicle,
+      carLabel: store.car ? carName(store.car) : "",
       startedAt: now,
       endsAt: now + checkout.hours * 3600000,
       status: "active"
@@ -764,6 +951,13 @@ app.addEventListener("input", (event) => {
   if (target.id === "search") {
     state.query = target.value;
     document.getElementById("road-list").innerHTML = renderRoadCards();
+  } else if (target.id === "car-search") {
+    state.carQuery = target.value;
+    document.getElementById("car-list").innerHTML = renderCarList();
+  } else if (target.id === "custom-length") {
+    state.customLength = target.value;
+  } else if (target.id === "custom-width") {
+    state.customWidth = target.value;
   } else if (target.id === "vehicle") {
     state.checkout.vehicle = target.value;
   } else if (target.dataset.profile) {
