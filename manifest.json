@@ -1,7 +1,7 @@
 {
-  "name": "Dhaka Parking Prototype",
-  "short_name": "Dhaka Parking",
-  "description": "Prototype app for finding and reserving free parking on Dhaka roads, using sample data.",
+  "name": "SmartPark Dhaka",
+  "short_name": "SmartPark",
+  "description": "AI-based parking detection, measurement and navigation prototype for Dhaka, using sample data.",
   "start_url": "./",
   "scope": "./",
   "display": "standalone",

@@ -1,4 +1,4 @@
-const CACHE_NAME = "dhaka-parking-v4";
+const CACHE_NAME = "dhaka-parking-v5";
 const APP_FILES = [
   "./",
   "index.html",
